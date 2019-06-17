@@ -3,11 +3,15 @@ package com.bignerdranch.android.photogallery;
 import android.app.AlarmManager;
 import android.app.IntentService;
 import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources;
+import android.graphics.Color;
 import android.net.ConnectivityManager;
+import android.os.Build;
 import android.os.SystemClock;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
@@ -21,6 +25,8 @@ public class PollService extends IntentService {
 
     private static final int POLL_INTERVAL = 1000 * 60; // 60 seconds
 //    private static final long POLL_INTERVAL = AlarmManager.INTERVAL_FIFTEEN_MINUTES;
+
+    public static final String ACTION_SHOW_NOTIFICATION = "com.bignerdranch.android.photogallery.SHOW_NOTIFICATION";
 
     public static Intent newIntent(Context context) {
         return new Intent(context, PollService.class);
@@ -38,6 +44,7 @@ public class PollService extends IntentService {
             alarmManager.cancel(pi);
             pi.cancel();
         }
+        QueryPreferences.setAlarmOn(context, isOn);
     }
 
     public static boolean isServiceAlarmOn(Context context) {
@@ -80,7 +87,28 @@ public class PollService extends IntentService {
             Resources resources = getResources();
             Intent i = PhotoGalleryActivity.newIntent(this);
             PendingIntent pi = PendingIntent.getActivity(this, 0, i, 0);
-            Notification notification = new NotificationCompat.Builder(this)
+
+            NotificationManager notification_manager = (NotificationManager) this
+                    .getSystemService(Context.NOTIFICATION_SERVICE);
+
+            NotificationCompat.Builder notification_builder = null;
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                String chanel_id = "3000";
+                CharSequence name = "Channel Name";
+                String description = "Chanel Description";
+                int importance = NotificationManager.IMPORTANCE_LOW;
+                NotificationChannel mChannel = new NotificationChannel(chanel_id, name, importance);
+                mChannel.setDescription(description);
+                mChannel.enableLights(true);
+                mChannel.setLightColor(Color.BLUE);
+                notification_manager.createNotificationChannel(mChannel);
+                notification_builder = new NotificationCompat.Builder(this, chanel_id);
+            } else {
+                notification_builder = new NotificationCompat.Builder(this);
+            }
+
+            Notification notification = notification_builder
                     .setTicker(resources.getString(R.string.new_pictures_title))
                     .setSmallIcon(android.R.drawable.ic_menu_report_image)
                     .setContentTitle(resources.getString(R.string.new_pictures_title))
@@ -92,6 +120,7 @@ public class PollService extends IntentService {
             NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
             notificationManager.notify(0, notification);
 
+            sendBroadcast(new Intent(ACTION_SHOW_NOTIFICATION));
         }
 
         QueryPreferences.setLastResultId(this, resultId);

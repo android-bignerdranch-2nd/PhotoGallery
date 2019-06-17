@@ -1,7 +1,5 @@
 package com.bignerdranch.android.photogallery;
 
-import android.app.IntentService;
-import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
